@@ -21,4 +21,21 @@ class Topic(Base, BaseTime):
     icon = Column(String)
     category_id = Column(Integer)
     status = Column(Enum(TalkPickStatus))
-    created_by_id = Column(Integer) 
+    created_by_id = Column(Integer)
+
+    @classmethod
+    def create(cls, title: str, detail: str, thumbnail: str, icon: str, created_by_id: int) -> "Topic":
+        return cls(
+            title=title,
+            detail=detail,
+            thumbnail=thumbnail,
+            icon=icon,
+            created_by_id=created_by_id,
+            status=TalkPickStatus.ACTIVE
+        )
+
+    def update(self, title: str, detail: str, thumbnail: str, icon: str) -> None:
+        self.title = title
+        self.detail = detail
+        self.thumbnail = thumbnail
+        self.icon = icon 
