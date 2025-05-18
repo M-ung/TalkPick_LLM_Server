@@ -1,0 +1,10 @@
+.env
+models/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.idea/
+.vscode/ 
