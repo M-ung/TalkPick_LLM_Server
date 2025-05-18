@@ -6,9 +6,7 @@ from ..repository.topic_repository import TopicRepository
 from ..dto.request.topic_request import TopicRequest
 from ..dto.response.topic_response import TopicListResponse
 
-# API 버전과 기본 경로 설정
 router = APIRouter(prefix="/api/v1")
-
 @router.post("/random/recommend", response_model=TopicListResponse)
 async def recommend_topics(
     request: TopicRequest,
