@@ -10,7 +10,7 @@ class TopicRepository:
     def find_by_id(self, topic_id: int) -> Optional[Topic]:
         return self.db.query(Topic).filter(Topic.id == topic_id).first()
 
-    def find_recommended_topics(
+    def find_topics_by_data(
         self, 
         member_id: int, 
         random_id: int, 
@@ -21,7 +21,6 @@ class TopicRepository:
             Topic.id.notin_(used_topic_ids)
         )
         
-        # 랜덤하게 4개 선택
         return query.order_by(func.random()).limit(4).all()
 
     def save(self, topic: Topic) -> Topic:

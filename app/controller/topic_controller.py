@@ -8,10 +8,10 @@ from ..dto.response.topic_response import TopicListResponse
 
 router = APIRouter(prefix="/api/v1")
 @router.post("/random/recommend", response_model=TopicListResponse)
-async def recommend_topics(
+async def recommend(
     request: TopicRequest,
     db: Session = Depends(get_db)
 ):
     repository = TopicRepository(db)
     service = TopicService(repository)
-    return await service.get_recommendations(request) 
+    return await service.recommend(request) 

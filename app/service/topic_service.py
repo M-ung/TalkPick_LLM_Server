@@ -7,11 +7,11 @@ class TopicService:
     def __init__(self, repository: TopicRepository):
         self.repository = repository
 
-    async def get_recommendations(self, request: TopicRequest) -> TopicListResponse:
+    async def recommend(self, request: TopicRequest) -> TopicListResponse:
         # TODO: 실제 구현에서는 사용된 주제 ID 목록을 DB에서 가져와야 함
         used_topic_ids = []  
         
-        topics = self.repository.find_recommended_topics(
+        topics = self.repository.find_topics_by_data(
             request.member_id,
             request.random_id,
             used_topic_ids
