@@ -27,4 +27,4 @@ class TopicRepository:
         self.db.add(topic)
         self.db.commit()
         self.db.refresh(topic)
-        return topic 
+        return topic
