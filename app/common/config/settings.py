@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional, List
-from pydantic import BaseModel, conint  # conint import 추가 필요
+from pydantic import BaseModel, conint 
 
 class Settings(BaseSettings):
     # LLM 모델 설정

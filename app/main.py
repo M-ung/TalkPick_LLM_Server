@@ -4,7 +4,6 @@ from .common.exception.exception_handler import init_exception_handlers
 
 app = FastAPI(title="TalkPick LLM Server")
 
-# 전역 예외 핸들러 등록
 init_exception_handlers(app)
 
 app.include_router(topic_router)
