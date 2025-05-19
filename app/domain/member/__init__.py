@@ -1,4 +1,5 @@
-from .type import Gender, MBTI
+from .type.gender import Gender
+from .type.mbti import MBTI
 
 __all__ = [
     'Gender',
