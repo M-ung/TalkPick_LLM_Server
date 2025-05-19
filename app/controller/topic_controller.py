@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from ..service.topic_service import TopicService
 from ..dto.request.topic_req_dto import TopicReqDTO
 from ..dto.response.topic_res_dto import TopicResDTO
+from app.common.exception.topic_exception import TopicException
 
 router = APIRouter(prefix="/api/v1")
 

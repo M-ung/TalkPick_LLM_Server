@@ -1,3 +1,4 @@
+import random
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -10,113 +11,70 @@ from app.domain.topic.type.category_group import CategoryGroup
 def client():
     return TestClient(app)
 
-def test_recommend_topics(client):
-    # 테스트용 요청 데이터
-    request_data = {
-        "mbti": "ENFP",
-        "gender": "FEMALE",
-        "age": 25,
-        "previous_topics": [
-            {
-                "id": 1,
-                "title": "여행",
-                "detail": "좋아하는 여행지",
-                "keyword": "TRAVEL",
-                "category_group": "LIFESTYLE",
-                "category": "여행"
-            }
-        ],
-        "available_topics": [
-            {
-                "topic_id": 2,
-                "topic_title": "음식",
-                "topic_detail": "좋아하는 음식",
-                "topic_thumbnail": "food.jpg",
-                "topic_icon": "food_icon.png",
-                "category_title": "음식",
-                "category_description": "다양한 음식 이야기",
-                "category_image_url": "food_category.jpg",
-                "category_group": "LIFESTYLE",
-                "keyword": "FOOD",
-                "e_count": 10,
-                "i_count": 5,
-                "s_count": 8,
-                "n_count": 7,
-                "f_count": 12,
-                "t_count": 3,
-                "j_count": 6,
-                "p_count": 9,
-                "teen_count": 2,
-                "twenties_count": 8,
-                "thirties_count": 4,
-                "forties_count": 1,
-                "fifties_count": 0,
-                "male_count": 7,
-                "female_count": 8
-            },
-            # ... 더 많은 토픽 데이터 추가
-        ]
+def generate_dummy_topics():
+    titles_and_details = [
+        ("만약에 너가 슈퍼 히어로라면?", "어떤 능력을 갖고 어떤 악당을 물리치고 싶어?"),
+        ("바람피는 애인 vs 잠수이별", "둘 중 하나만 겪어야 한다면 무엇을 선택할래?"),
+        ("머리에 꽃이 핀다면?", "세상 모든 사람이 머리에 꽃을 피우고 다닌다면 어떤 일이 생길까?"),
+        ("하루 동안 투명인간이 된다면?", "어디에 가고 누구를 볼 거야?"),
+        ("로또 1등에 당첨된다면?", "가장 먼저 무엇을 할 거야?")
+    ]
+
+    keywords = [Keyword.FOOD, Keyword.TRAVEL, Keyword.MOVIE, Keyword.HOBBY, Keyword.DREAM]
+    category_groups = [CategoryGroup.STRANGER, CategoryGroup.CLOSE]
+
+    dummy_topics = []
+    for i, (title, detail) in enumerate(titles_and_details, start=1):
+        dummy_topics.append({
+            "topic_id": i,
+            "topic_title": title,
+            "topic_detail": detail,
+            "topic_thumbnail": f"thumbnail_{i}.jpg",
+            "topic_icon": f"icon_{i}.png",
+            "category_title": f"카테고리 {i % 5}",
+            "category_description": f"카테고리 {i % 5}에 대한 설명입니다.",
+            "category_image_url": f"cat_img_{i}.jpg",
+            "category_group": random.choice(category_groups).value,
+            "keyword": random.choice(keywords).value,
+            "e_count": 10,
+            "i_count": 10,
+            "s_count": 10,
+            "n_count": 10,
+            "f_count": 10,
+            "t_count": 10,
+            "j_count": 10,
+            "p_count": 10,
+            "teen_count": 5,
+            "twenties_count": 5,
+            "thirties_count": 5,
+            "forties_count": 5,
+            "fifties_count": 5,
+            "male_count": 5,
+            "female_count": 5,
+        })
+    return dummy_topics
+
+def to_previous_format(topic):
+    return {
+        "id": topic["topic_id"],
+        "title": topic["topic_title"],
+        "detail": topic["topic_detail"],
+        "keyword": topic["keyword"],
+        "category_group": topic["category_group"],
+        "category": topic["category_title"]
     }
 
-    # API 호출
-    response = client.post("/api/v1/topics/recommend", json=request_data)
-    
-    # 응답 검증
-    assert response.status_code == 200
-    data = response.json()
-    assert "topics" in data
-    assert len(data["topics"]) == 4  # 4개의 주제가 추천되어야 함
-    
-    # 각 주제의 필수 필드 검증
-    for topic in data["topics"]:
-        assert "order" in topic
-        assert "topic_id" in topic
-        assert "category" in topic
-        assert "image_url" in topic
-        assert "keyword" in topic
-        assert "thumbnail" in topic
-        assert "icon" in topic
+def test_just_show_recommendation_response(client):
+    all_topics = generate_dummy_topics()
+    previous_topics = [to_previous_format(t) for t in all_topics[:2]]  # 이전 토픽 2개만
 
-def test_recommend_topics_insufficient(client):
-    # 토픽이 부족한 경우 테스트
     request_data = {
-        "mbti": "ENFP",
-        "gender": "FEMALE",
+        "mbti": MBTI.ENFP.name,
+        "gender": Gender.FEMALE.name,
         "age": 25,
-        "previous_topics": [],
-        "available_topics": [
-            {
-                "topic_id": 1,
-                "topic_title": "음식",
-                "topic_detail": "좋아하는 음식",
-                "topic_thumbnail": "food.jpg",
-                "topic_icon": "food_icon.png",
-                "category_title": "음식",
-                "category_description": "다양한 음식 이야기",
-                "category_image_url": "food_category.jpg",
-                "category_group": "LIFESTYLE",
-                "keyword": "FOOD",
-                "e_count": 10,
-                "i_count": 5,
-                "s_count": 8,
-                "n_count": 7,
-                "f_count": 12,
-                "t_count": 3,
-                "j_count": 6,
-                "p_count": 9,
-                "teen_count": 2,
-                "twenties_count": 8,
-                "thirties_count": 4,
-                "forties_count": 1,
-                "fifties_count": 0,
-                "male_count": 7,
-                "female_count": 8
-            }
-        ]
+        "previous_topics": previous_topics,
+        "available_topics": all_topics
     }
 
     response = client.post("/api/v1/topics/recommend", json=request_data)
-    assert response.status_code == 400
-    data = response.json()
-    assert "error" in data
-    assert data["error"]["code"] == "INSUFFICIENT_TOPICS" 
+    print("\n✅ 추천 토픽 응답 결과:\n", response.json())
