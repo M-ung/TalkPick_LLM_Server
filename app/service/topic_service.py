@@ -1,101 +1,125 @@
 from typing import List
+import random
+import os
+from llama_cpp import Llama
 from ..dto.request.topic_req_dto import TopicReqDTO
 from ..dto.response.topic_res_dto import TopicResDTO, RandomTopic
+from ..common.exception.topic_exception import TopicException, ErrorCode
+from ..common.config.settings import get_settings
 
 class TopicService:
     def __init__(self):
+        self.settings = get_settings()
         self.llm = self._initialize_llm()
 
-    async def recommend(self, request: TopicReqDTO) -> TopicResDTO:
-        # 1. 이전 주제 ID 제외
-        used_topic_ids = {topic.id for topic in request.previous_topics}
-        available_topics = [
-            topic for topic in request.available_topics 
-            if topic.topic_id not in used_topic_ids
-        ]
-
-        # 2. LLM 프롬프트 생성
-        prompt = f"""
-        당신은 대화 주제 추천 전문가입니다. 다음 사용자 특성과 대화 맥락을 고려하여 가장 적합한 주제 4개를 추천해주세요.
-
-        [사용자 정보]
-        - MBTI: {request.mbti}
-        - 성별: {request.gender}
-        - 나이: {request.age}
-
-        [이전 대화 주제들]
-        {self._format_previous_topics(request.previous_topics)}
-
-        [선택 가능한 주제 목록]
-        {self._format_available_topics(available_topics)}
-
-        다음 기준으로 가장 적합한 주제 4개의 topic_id를 선택해주세요:
-        1. 사용자의 MBTI 성향과 통계적 선호도 매칭
-        2. 사용자의 연령대와 성별 통계 고려
-        3. 이전 대화 주제들과의 자연스러운 연결성
-        4. 대화의 다양성과 흥미 유지
-
-        응답 형식: topic_id만 쉼표로 구분 (예: 1,4,7,12)
-        """
-
-        # 3. LLM으로 주제 선택
-        selected_ids = self._get_topic_ids_from_llm(
-            self.llm.generate(prompt)
-        )
-
-        # 4. 선택된 주제로 응답 생성
-        recommended_topics = []
-        for order, topic_id in enumerate(selected_ids, 1):
-            topic = next(t for t in available_topics if t.topic_id == topic_id)
-            recommended_topics.append(
-                RandomTopic(
-                    order=order,
-                    topic_id=topic.topic_id,
-                    category=topic.category_title,
-                    image_url=topic.category_image_url or "",
-                    keyword=topic.keyword.value,
-                    thumbnail=topic.topic_thumbnail or "",
-                    icon=topic.topic_icon or ""
+    def _initialize_llm(self) -> Llama:
+        try:
+            if not os.path.exists(self.settings.MODEL_PATH):
+                raise TopicException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    f"모델 파일을 찾을 수 없습니다: {self.settings.MODEL_PATH}"
                 )
+
+            return Llama(
+                model_path=self.settings.MODEL_PATH,
+                temperature=self.settings.MODEL_TEMPERATURE,
+                max_tokens=self.settings.MODEL_MAX_TOKENS,
+                n_ctx=self.settings.MODEL_CONTEXT_LENGTH,
+                n_threads=self.settings.MODEL_THREADS
+            )
+        except Exception as e:
+            raise TopicException(
+                ErrorCode.INTERNAL_SERVER_ERROR,
+                f"LLM 초기화 중 오류가 발생했습니다: {str(e)}"
             )
 
-        return TopicResDTO(topics=recommended_topics)
+    async def recommend(self, request: TopicReqDTO) -> TopicResDTO:
+        try:
+            # 1. 사용 가능한 토픽이 충분한지 확인
+            if len(request.available_topics) < 4:
+                raise TopicException(
+                    ErrorCode.INSUFFICIENT_TOPICS,
+                    f"사용 가능한 주제가 {len(request.available_topics)}개 뿐입니다."
+                )
 
-    def _format_previous_topics(self, previous_topics: List[TopicReqDTO.PreviousTopicData]) -> str:
-        if not previous_topics:
-            return "이전 대화 주제 없음"
-        
-        return "\n".join([
-            f"- 주제: {topic.title}\n"
-            f"  설명: {topic.detail}\n"
-            f"  키워드: {topic.keyword.value}\n"
-            f"  카테고리: {topic.category_group.value}/{topic.category}"
-            for topic in previous_topics
-        ])
+            # 2. 이전 주제 ID 제외
+            used_topic_ids = {topic.id for topic in request.previous_topics}
+            available_topics = [
+                topic for topic in request.available_topics 
+                if topic.topic_id not in used_topic_ids
+            ]
 
-    def _format_available_topics(self, topics: List[TopicReqDTO.TopicData]) -> str:
-        return "\n".join([
-            f"ID: {topic.topic_id}\n"
-            f"제목: {topic.topic_title}\n"
-            f"설명: {topic.topic_detail}\n"
-            f"키워드: {topic.keyword.value}\n"
-            f"카테고리: {topic.category_group.value}/{topic.category_title}\n"
-            f"MBTI 통계: E({topic.e_count})/I({topic.i_count}), "
-            f"S({topic.s_count})/N({topic.n_count}), "
-            f"F({topic.f_count})/T({topic.t_count}), "
-            f"J({topic.j_count})/P({topic.p_count})\n"
-            f"연령대 통계: 10대({topic.teen_count}), 20대({topic.twenties_count}), "
-            f"30대({topic.thirties_count}), 40대({topic.fortiesCount}), "
-            f"50대({topic.fifties_count})\n"
-            f"성별 통계: 남성({topic.male_count}), 여성({topic.female_count})\n"
-            for topic in topics
-        ])
+            if len(available_topics) < 4:
+                return await self._fallback_random_recommendation(available_topics)
+
+            # 3. LLM 프롬프트 생성 및 추천
+            try:
+                prompt = self._create_recommendation_prompt(request, available_topics)
+                selected_ids = self._get_topic_ids_from_llm(
+                    self.llm.generate(prompt)
+                )
+            except Exception as e:
+                # LLM 실패시 fallback
+                return await self._fallback_random_recommendation(available_topics)
+
+            # 4. 선택된 주제로 응답 생성
+            recommended_topics = []
+            for order, topic_id in enumerate(selected_ids, 1):
+                try:
+                    topic = next(t for t in available_topics if t.topic_id == topic_id)
+                    recommended_topics.append(
+                        RandomTopic(
+                            order=order,
+                            topic_id=topic.topic_id,
+                            category=topic.category_title,
+                            image_url=topic.category_image_url or "",
+                            keyword=topic.keyword.value,
+                            thumbnail=topic.topic_thumbnail or "",
+                            icon=topic.topic_icon or ""
+                        )
+                    )
+                except StopIteration:
+                    # 잘못된 topic_id가 선택된 경우 fallback
+                    return await self._fallback_random_recommendation(available_topics)
+
+            return TopicResDTO(topics=recommended_topics)
+
+        except TopicException:
+            raise
+        except Exception as e:
+            raise TopicException(
+                ErrorCode.INTERNAL_SERVER_ERROR,
+                f"주제 추천 중 오류가 발생했습니다: {str(e)}"
+            )
 
     def _get_topic_ids_from_llm(self, llm_response: str) -> List[int]:
         try:
             ids = [int(id.strip()) for id in llm_response.strip().split(',')]
             if len(ids) != 4:
-                raise ValueError("Must select exactly 4 topics")
+                raise TopicException(
+                    ErrorCode.LLM_RESPONSE_PARSING_ERROR,
+                    "LLM이 정확히 4개의 주제를 선택하지 않았습니다."
+                )
             return ids
         except Exception as e:
-            raise ValueError(f"Failed to parse LLM response: {e}") 
+            raise TopicException(
+                ErrorCode.LLM_RESPONSE_PARSING_ERROR,
+                f"LLM 응답 파싱 중 오류: {str(e)}"
+            )
+
+    async def _fallback_random_recommendation(self, available_topics: List[TopicReqDTO.TopicData]) -> TopicResDTO:
+        """LLM 추천 실패시 랜덤 추천 fallback"""
+        selected_topics = random.sample(available_topics, min(4, len(available_topics)))
+        recommended_topics = [
+            RandomTopic(
+                order=order,
+                topic_id=topic.topic_id,
+                category=topic.category_title,
+                image_url=topic.category_image_url or "",
+                keyword=topic.keyword.value,
+                thumbnail=topic.topic_thumbnail or "",
+                icon=topic.topic_icon or ""
+            )
+            for order, topic in enumerate(selected_topics, 1)
+        ]
+        return TopicResDTO(topics=recommended_topics)
