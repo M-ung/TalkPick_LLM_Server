@@ -2,17 +2,10 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
-    # Database settings
-    DB_USER: str
-    DB_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
-    DB_NAME: str
-    
-    # AI Model settings
+    # LLM Model settings
     MODEL_PATH: str
-    MODEL_TEMPERATURE: float
-    MODEL_MAX_TOKENS: int
+    MODEL_TEMPERATURE: float = 0.7
+    MODEL_MAX_TOKENS: int = 2000
     
     class Config:
         env_file = ".env"
