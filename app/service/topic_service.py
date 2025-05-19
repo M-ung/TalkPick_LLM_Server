@@ -6,10 +6,6 @@ class TopicService:
     def __init__(self):
         self.llm = self._initialize_llm()
 
-    def _initialize_llm(self):
-        # TODO: Llama 2 모델 초기화 로직 구현
-        pass
-
     async def recommend(self, request: TopicReqDTO) -> TopicResDTO:
         # 1. 이전 주제 ID 제외
         used_topic_ids = {topic.id for topic in request.previous_topics}
