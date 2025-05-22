@@ -5,7 +5,6 @@ from app.main import app
 from app.domain.member.type.gender import Gender
 from app.domain.member.type.mbti import MBTI
 from app.domain.topic.type.keyword import Keyword
-from app.domain.topic.type.category_group import CategoryGroup
 
 @pytest.fixture
 def client():
@@ -21,7 +20,6 @@ def generate_dummy_topics():
     ]
 
     keywords = [Keyword.FOOD, Keyword.TRAVEL, Keyword.MOVIE, Keyword.HOBBY, Keyword.DREAM]
-    category_groups = [CategoryGroup.STRANGER, CategoryGroup.CLOSE]
 
     dummy_topics = []
     for i, (title, detail) in enumerate(titles_and_details, start=1):
@@ -34,7 +32,6 @@ def generate_dummy_topics():
             "category_title": f"카테고리 {i % 5}",
             "category_description": f"카테고리 {i % 5}에 대한 설명입니다.",
             "category_image_url": f"cat_img_{i}.jpg",
-            "category_group": random.choice(category_groups).value,
             "keyword": random.choice(keywords).value,
             "e_count": 10,
             "i_count": 10,
@@ -60,7 +57,6 @@ def to_previous_format(topic):
         "title": topic["topic_title"],
         "detail": topic["topic_detail"],
         "keyword": topic["keyword"],
-        "category_group": topic["category_group"],
         "category": topic["category_title"]
     }
 
