@@ -3,7 +3,6 @@ from pydantic import BaseModel, conint
 from ...domain.member.type.gender import Gender
 from ...domain.member.type.mbti import MBTI
 from ...domain.topic.type.keyword import Keyword
-from ...domain.topic.type.category_group import CategoryGroup
 
 class TopicReqDTO(BaseModel):
     class PreviousTopicData(BaseModel):
@@ -11,7 +10,6 @@ class TopicReqDTO(BaseModel):
         title: str
         detail: str
         keyword: Keyword
-        category_group: CategoryGroup
         category: str
 
     class TopicData(BaseModel):
@@ -23,7 +21,6 @@ class TopicReqDTO(BaseModel):
         category_title: str
         category_description: str
         category_image_url: Optional[str]
-        category_group: CategoryGroup
         keyword: Keyword
         
         # MBTI 통계
