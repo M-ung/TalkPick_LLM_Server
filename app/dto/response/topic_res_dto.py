@@ -4,6 +4,7 @@ from pydantic import BaseModel, conint
 class RandomTopic(BaseModel):
     order: int
     topic_id: conint(ge=0, strict=True) 
+    category_group: str
     category: str
     image_url: str
     keyword: str

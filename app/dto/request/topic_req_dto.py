@@ -9,19 +9,21 @@ class TopicReqDTO(BaseModel):
         id: conint(ge=0, strict=True) 
         title: str
         detail: str
-        keyword: Keyword
+        keyword: str
+        category_group: str
         category: str
 
     class TopicData(BaseModel):
         topic_id: conint(ge=0, strict=True) 
         topic_title: str
         topic_detail: str
+        keyword: str
         topic_thumbnail: Optional[str]
         topic_icon: Optional[str]
+        category_group: str
         category_title: str
         category_description: str
         category_image_url: Optional[str]
-        keyword: Keyword
         
         # MBTI 통계
         e_count: int
